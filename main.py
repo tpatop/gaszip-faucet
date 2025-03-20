@@ -13,8 +13,9 @@ transaction_queue = asyncio.Queue()
 async def send_transaction(gaszip, attempt=1):
     """Функция для отправки транзакции с повторными попытками"""
     try:
-        await gaszip.random_bridge()
-        return True  # Успех
+        result = await gaszip.random_bridge()
+        if result:
+            return True  # Успех
     except Exception as e:
         logger.error(f"Ошибка в транзакции: {e}. Попытка {attempt}/{Config.MAX_RETRIES}")
         if attempt < Config.MAX_RETRIES:

@@ -38,6 +38,7 @@ async def claim_with_fallbacks(session: aiohttp.ClientSession, address: str, pro
                 return result
             else:
                 logger.info(f"[{address}] ⚠️ Gas еще не был заклеймен на tier={tier}. Пробуем следующий...")
+                await asyncio.sleep(5)
         else:
             logger.error(f"[{address}] ❌ Ошибка: {result.get('error', 'Unknown error')} на tier={tier}")
 
