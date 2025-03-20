@@ -7,10 +7,10 @@ from loguru import logger
 from src.utils.config import read_private_keys, read_proxies
 
 
-async def claim_gas(session: aiohttp.ClientSession, address: str, proxy: str) -> dict:
+async def claim_gas(session: aiohttp.ClientSession, address: str, proxy: str, tier: int = 100) -> dict:
     """Выполняет GET-запрос для claim газа и возвращает результат."""
-    url = f"https://backend.gas.zip/v2/monadEligibility/{address}?claim=true&tier=100"
-    
+    url = f"https://backend.gas.zip/v2/monadEligibility/{address}?claim=true" + (f"&tier={tier}" if tier else "")
+
     try:
         async with session.get(url, proxy=f"http://{proxy}" if proxy else None) as response:
             if response.status == 200:
@@ -22,6 +22,27 @@ async def claim_gas(session: aiohttp.ClientSession, address: str, proxy: str) ->
     except Exception as e:
         logger.exception(f"[{address}] ❌ Request failed: {str(e)}")
         return {"error": f"Request failed: {str(e)}"}
+
+
+async def claim_with_fallbacks(session: aiohttp.ClientSession, address: str, proxy: str):
+    """
+    Запускает процесс клейма газа с поочередным уменьшением tier в случае неудачи.
+    """
+    tiers = [100, 50, 25, 10, None]  # Последний запрос без tier
+    for tier in tiers:
+        result = await claim_gas(session, address, proxy, tier)
+        
+        if "eligibility" in result:
+            if result["eligibility"] == "CLAIMED":
+                logger.success(f"[{address}] ✅ Gas успешно заклеймен.")
+                return result
+            else:
+                logger.info(f"[{address}] ⚠️ Gas еще не был заклеймен на tier={tier}. Пробуем следующий...")
+        else:
+            logger.error(f"[{address}] ❌ Ошибка: {result.get('error', 'Unknown error')} на tier={tier}")
+
+    logger.error(f"[{address}] ❌ Не удалось заклеймить gas после всех попыток.")
+    return {"error": "All tiers failed"}
 
 
 async def main():
@@ -49,21 +70,11 @@ async def main():
             logger.info(f"[Аккаунт {account_index}] 🔍 Проверка возможности клейма ({address})...")
 
             # Добавляем задачу в список
-            tasks.append(claim_gas(session, address, proxy))
+            tasks.append(claim_with_fallbacks(session, address, proxy))
 
         # Выполняем все задачи параллельно
-        results = await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks)
 
-        # Выводим результаты
-        for account_index, (private_key, result) in enumerate(zip(private_keys, results)):
-            address = Account.from_key(private_key).address
-            if "eligibility" in result:
-                if result["eligibility"] == "CLAIMED":
-                    logger.success(f"[Аккаунт {account_index}] ✅ Gas уже был заклеймен ({address}).")
-                else:
-                    logger.info(f"[Аккаунт {account_index}] 🟢 Gas еще не был заклеймен ({address}).")
-            else:
-                logger.error(f"[Аккаунт {account_index}] ❌ Ошибка: {result.get('error', 'Unknown error')} ({address})")
 
 if __name__ == "__main__":
     asyncio.run(main())
