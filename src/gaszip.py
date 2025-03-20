@@ -1,8 +1,7 @@
 from web3 import AsyncWeb3
 from eth_account import Account
-from typing import Dict, Optional, List, Tuple
+from typing import Dict
 import random
-import asyncio
 from loguru import logger
 from src.utils.config import Config
 from src.model.gaszip.constants import (
@@ -18,12 +17,10 @@ class Gaszip:
         account_index: int,
         proxy: str | None,
         private_key: str,
-        config: Config,
     ):
         self.account_index = account_index
         self.proxy = self._clean_proxy(proxy) if proxy else None
         self.private_key = private_key
-        self.config = config
         self.account = Account.from_key(private_key)
             
     def _clean_proxy(self, proxy: str) -> str:
@@ -155,8 +152,8 @@ class Gaszip:
             return False
         
         # Определяем сумму для перевода
-        if not self.config.BRIDGE_ALL:
-            amount = random.uniform(*self.config.AMOUNT_TO_REFUEL)
+        if not Config.BRIDGE_ALL:
+            amount = random.uniform(*Config.AMOUNT_TO_REFUEL)
             if balance * 0.85 <= amount:
                 return False
         else:

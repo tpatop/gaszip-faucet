@@ -2,9 +2,13 @@ import os
 from typing import List
 
 class Config:
-    AMOUNT_TO_REFUEL = [0.0005, 0.001]
-    BRIDGE_ALL = False
-    TARGET_TX = 100
+    BRIDGE_ALL = False                  # Использовать весь баланс для работы
+    AMOUNT_TO_REFUEL = [0.0005, 0.001]  # Диапазон отправки токенов
+    TARGET_TX = 100                     # Количество транзакций к выполнению на каждом аккаунте
+    MAX_RETRIES = 5                     # Количество повторных попыток в случае ошибки
+    SEMAPHORE_LIMIT = 5                 # Ограничение на количество одновременных транзакций
+    SLEEP_AFTER_TX = [5, 10]            # Сон после каждой транзакции в секундах
+
 
 def _get_dir_keys(base_dir: str):
     # Путь к src/data
@@ -19,7 +23,6 @@ def _get_dir_proxies(base_dir: str):
     # Пути к файлам
     proxies_file = os.path.join(data_dir, "proxies.txt")
     return proxies_file
-
 
 def read_private_keys(base_dir: str) -> List[str]:
     """Чтение приватных ключей из файла."""
