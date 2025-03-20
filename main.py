@@ -46,9 +46,7 @@ async def process_account(account_index, private_key, proxy, semaphore):
         sleep_time = random.uniform(*Config.SLEEP_AFTER_TX)
         logger.debug(f"⏳ Аккаунт {account_index}: пауза {sleep_time:.2f} сек перед следующей транзакцией...")
         await asyncio.sleep(sleep_time)
-    # Закрываем сессию клиента
-    await gaszip.close()
-
+        
 
 async def main():
     # Директория, где находится main.py
